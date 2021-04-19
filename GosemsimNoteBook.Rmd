@@ -1,0 +1,73 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+library(GOSemSim)
+d <- godata('org.Hs.eg.db', ont="CC", computeIC=FALSE)
+
+# TODO other Ont terms: MF, biological processes, similar component
+# TODO other methods for measure="Wang"
+
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# BiocManager::install("org.Hs.eg.db")
+```
+```{r}
+expData <- read.csv(file = 'testingEntrezData.csv')
+head(expData)
+
+grounds = c()
+rands = c()
+
+nrows = nrow(expData)
+
+print(nrows)
+# For some reason there are a bunch of warnings when runnning clusterSim
+pb = txtProgressBar(min = 0, max = length(nrows), initial = 0) 
+
+suppressWarnings( 
+  for (row in 1:nrows) {
+    setTxtProgressBar(pb,row)
+    a <- strsplit(expData[row,2],';')
+    a1 <- strsplit(expData[row,3],';')
+    b <- strsplit(expData[row,4],';')
+  
+    groundSim = clusterSim(a, a1, semData=d, measure="Wang")
+    randSim = clusterSim(b, a1, semData=d, measure="Wang")
+  
+    grounds = c(grounds,groundSim)
+    rands = c(rands,randSim)
+    if(row%%500 == 0){
+      print(row)
+    }
+  }
+)
+
+```
+
+```{r}
+hist(grounds)
+hist(rands)
+
+correct = grounds > rands
+print(length(correct[correct == TRUE]))
+print(sum(grounds>rands))
+
+
+write.csv(grounds, file ="grounds_experiment1CC.csv", row.names=FALSE)
+write.csv(rands, file ="rands_experiment1CC.csv", row.names=FALSE)
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
